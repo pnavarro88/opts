@@ -1,22 +1,28 @@
 import pandas as pd
 
+cd Documents
+cd ED&F Man(NOV 1 2014)
+cd Options
+cd SPY Options
+cd 2014
+
 #import file
 #import data just as it comes, as a compressed file
 data = pd.read_csv('SPY JUN-SEP14.gz', compression='gzip', parse_dates=True)
 
-#remove no trades
-#create function to del and create columns
-#ask for ticker
-#no_trades =(data.Qualifiers != 'No Trades') 
+
+no_trades =(data.Qualifiers != 'No Trades') 
 
 data['RIC'] = data['#RIC']
 
 def to_create_columns(dataframe):
     to_create = ['Ticker',
                  'exp_month',
+                 'exp_month2',
                  'year',
                  'day',
-                 'strike']
+                 'strike',
+                 'Calls_Puts']
     for x in to_create:
         data[x] = 0
 
@@ -66,3 +72,52 @@ for key in data.RIC.keys():
     data.strike[key] = data.RIC[key][int(len(data.Ticker[key]) + 5) : 
                                      int(len(data.Ticker[key]) + 8)]
     data.strike[key] = str(data.strike[key]) + '.' + data.RIC[key][len(data.Ticker[key]) + 8]
+
+	
+#check if option is a call or a put
+calls = ['A','B','C','D','E','F','G','H','I','J','K','L',]
+puts = ['M','N','O','P','Q','R','S','T','U','V','W','X',]
+for key in data.exp_month.keys():
+    if data.exp_month[key] in calls:
+        data.Calls_Puts[key] = 'Call'
+    elif data.exp_month[key] in puts:
+        data.Calls_Puts[key] = 'Put'
+
+#CONVERT EXP_MONTH INTO AN ACTUAL MONTH in exp_month2 column
+for key in data.exp_month.keys():
+    jan = ['A', 'M']
+    feb = ['B', 'N']
+    mar = ['C', 'O']
+    apr = ['D', 'P']
+    may = ['E', 'Q']
+    jun = ['F', 'R']
+    jul = ['G', 'S']
+    aug = ['H', 'T']
+    sep = ['I', 'U']
+    octo = ['J', 'V']
+    nov = ['K', 'W']
+    dec = ['L', 'X']
+    if data.exp_month[key] in jan:
+        data.exp_month2[key] = 'Jan'
+    elif data.exp_month[key] in feb:
+        data.exp_month2[key] = 'Feb'
+    elif data.exp_month[key] in mar:
+        data.exp_month2[key] = 'Mar'
+    elif data.exp_month[key] in apr:
+        data.exp_month2[key] = 'Apr'
+    elif data.exp_month[key] in may:
+        data.exp_month2[key] = 'May'
+    elif data.exp_month[key] in jun:
+        data.exp_month2[key] = 'Jun'
+    elif data.exp_month[key] in jul:
+        data.exp_month2[key] = 'Jul'
+    elif data.exp_month[key] in aug:
+        data.exp_month2[key] = 'Aug'
+    elif data.exp_month[key] in sep:
+        data.exp_month2[key] = 'Sep'
+    elif data.exp_month[key] in octo:
+        data.exp_month2[key] = 'Oct'
+    elif data.exp_month[key] in nov:
+        data.exp_month2[key] = 'Nov'
+    elif data.exp_month[key] in dec:
+        data.exp_month2[key] = 'Dec'
