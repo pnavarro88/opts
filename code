@@ -1,123 +1,156 @@
 import pandas as pd
+import os
+#be careful with the part of ticker. It is currently set up as 
+# raw_input but this will be time consuming when looping over a 
+#big folder.
 
-cd Documents
-cd ED&F Man(NOV 1 2014)
-cd Options
-cd SPY Options
-cd 2014
+#Needs to be fixed in order to be able to run from the cmd line
+#the current problem is that it cant move back in dictionary
 
-#import file
-#import data just as it comes, as a compressed file
-data = pd.read_csv('SPY JUN-SEP14.gz', compression='gzip', parse_dates=True)
+ 
+# change directory to where the files are located
+cd ...
+#path to file
+file_list = os.listdir(r'C:\Users\Pablo\Documents\ED&F Man(NOV 1 2014)\Options\IBM Options\IBM ALL')
+for file_name in file_list:
+    data = pd.read_csv(file_name, compression='gzip', parse_dates=True)
+    no_trades =(data.Qualifiers != 'No Trades') 
+
+    data['RIC'] = data['#RIC']
+
+    def to_create_columns(dataframe):
+        to_create = ['Ticker',
+                     'Calls_Puts',
+                     'exp_month',
+                     'exp_month2',
+                     'year',
+                     'day',
+                     'day_2_digits',
+                     'strike']
+        for x in to_create:
+            data[x] = '0'
+
+    def to_delete_data(data):
+        to_delete = [
+                'Time[L]',
+                'Qualifiers',
+                'Settle',
+                'Data Source',
+                '#RIC',
+                'Type']
+
+        for key in to_delete:
+            del data[key]
+            
+    to_delete_data(data)
+    to_create_columns(data)
+    #data['day_2_digits'] = ''
+    data.Ticker = raw_input('Whats the ticker? ')
+
+    data = data[no_trades]
+    data = data.dropna()
+
+    #create a loop to look for all the mini options on the spy. Then will create a mask to filter the 
+    #big options only and create a new data frame for mini options
+    data['mini_option'] = 0
+    for key in data.RIC.keys():
+        if data.RIC[key][3] == '7':
+            data.mini_option[key] = 1
+
+    mini = data.mini_option == 1
+    big = data.mini_option == 0
+
+    mini_options = data[mini]
+    data = data[big]
+    #del data.mini_option
+
+    #Now we have created 2 data frames containing mini options in one and regular options in another.
+    #Cleaning and filtering process is over.
+
+    #filter the info needed for each column taken from the ric column
+    #need to convert month codes to month names and get them to say if its puts or calls
+
+    for key in data.RIC.keys():
+        data.exp_month[key] = data.RIC[key][len(data.Ticker[key])]
+        data.year[key] = data.RIC[key][int(len(data.Ticker[key]) + 3) : int(len(data.Ticker[key]) + 5)]
+        data.day[key] = data.RIC[key][int(len(data.Ticker[key])+1) : int(len(data.Ticker[key]) + 3)]
+        data.strike[key] = (data.RIC[key][int(len(data.Ticker[key]) + 5) : 
+                                         int(len(data.Ticker[key]) + 8)])
+        data.strike[key] = str(data.strike[key]) + data.RIC[key][len(data.Ticker[key]) + 8]
+
+    for key in data.day.keys():
+        if len(str(data.day[key])) == 1:
+            data.day_2_digits[key] = '0'+ str(data.day[key])
+        else:
+            data.day_2_digits[key] = data.day[key][:]
+
+    calls = ['A','B','C','D','E','F','G','H','I','J','K','L',]
+    puts = ['M','N','O','P','Q','R','S','T','U','V','W','X',]
+    for key in data.exp_month.keys():
+        if data.exp_month[key] in calls:
+            data.Calls_Puts[key] = 'Call'
+        elif data.exp_month[key] in puts:
+            data.Calls_Puts[key] = 'Put'
+
+    #CONVERT EXP_MONTH INTO AN ACTUAL MONTH in exp_month2 column
+    for key in data.exp_month.keys():
+        jan = ['A', 'M']
+        feb = ['B', 'N']
+        mar = ['C', 'O']
+        apr = ['D', 'P']
+        may = ['E', 'Q']
+        jun = ['F', 'R']
+        jul = ['G', 'S']
+        aug = ['H', 'T']
+        sep = ['I', 'U']
+        octo = ['J', 'V']
+        nov = ['K', 'W']
+        dec = ['L', 'X']
+        if data.exp_month[key] in jan:
+            data.exp_month2[key] = '01'
+        elif data.exp_month[key] in feb:
+            data.exp_month2[key] = '02'
+        elif data.exp_month[key] in mar:
+            data.exp_month2[key] = '03'
+        elif data.exp_month[key] in apr:
+            data.exp_month2[key] = '04'
+        elif data.exp_month[key] in may:
+            data.exp_month2[key] = '05'
+        elif data.exp_month[key] in jun:
+            data.exp_month2[key] = '06'
+        elif data.exp_month[key] in jul:
+            data.exp_month2[key] = '07'
+        elif data.exp_month[key] in aug:
+            data.exp_month2[key] = '08'
+        elif data.exp_month[key] in sep:
+            data.exp_month2[key] = '09'
+        elif data.exp_month[key] in octo:
+            data.exp_month2[key] = '10'
+        elif data.exp_month[key] in nov:
+            data.exp_month2[key] = '11'
+        elif data.exp_month[key] in dec:
+            data.exp_month2[key] = '12'
+    def add_blank_to_ticker(data_frame):
+        data_frame['OSI'] = ''
+        for key in data_frame.Ticker.keys():
+            if len(data_frame.Ticker[key]) == 1:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) +'     ' + str(data_frame.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')
+            elif len(data_frame.Ticker[key]) == 2:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) +'    ' + str(data_frame.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')   
+            elif len(data_frame.Ticker[key]) == 3:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) +'   ' + str(osi.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')
+            elif len(data_frame.Ticker[key]) == 4:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) +'  ' + str(data_frame.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')
+            elif len(Ticker[key]) == 5:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) +' ' + str(data_frame.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')
+            elif len(data_frame.Ticker[key]) == 6:
+                data_frame.OSI[key] = (str(data_frame.Ticker[key]) + str(data_frame.year[key]) + str(data_frame.exp_month2[key]) + str(data_frame.day_2_digits[key]) + str(data_frame.Calls_Puts[key][0]) + '00'+ str(data_frame.strike[key]) + '00')
 
 
-no_trades =(data.Qualifiers != 'No Trades') 
+    osi= data[:]
+    osi['OSI'] = '0'
+    add_blank_to_ticker(osi)
+    osi.to_csv(file_name + 'OSI.csv')
+    print 'modified ', file_name
 
-data['RIC'] = data['#RIC']
-
-def to_create_columns(dataframe):
-    to_create = ['Ticker',
-                 'exp_month',
-                 'exp_month2',
-                 'year',
-                 'day',
-                 'strike',
-                 'Calls_Puts']
-    for x in to_create:
-        data[x] = 0
-
-def to_delete_data(data):
-    to_delete = [
-            'Time[L]',
-            'Qualifiers',
-            'Settle',
-            'Data Source',
-            '#RIC',
-            'Type']
-    
-    for key in to_delete:
-        del data[key]
-        
-to_delete_data(data)
-to_create_columns(data)
-data.Ticker = raw_input('Whats the ticker? ')
-
-data = data[no_trades]
-data = data.dropna()
-
-#create a loop to look for all the mini options on the spy. Then will create a mask to filter the 
-#big options only and create a new data frame for mini options
-data['mini_option'] = 0
-for key in data.RIC.keys():
-    if data.RIC[key][3] == '7':
-        data.mini_option[key] = 1
-        
-mini = data.mini_option == 1
-big = data.mini_option == 0
-
-mini_options = data[mini]
-data = data[big]
-#del data.mini_option
-
-#Now we have created 2 data frames containing mini options in one and regular options in another.
-#Cleaning and filtering process is over.
-
-#filter the info needed for each column taken from the ric column
-#need to convert month codes to month names and get them to say if its puts or calls
-
-for key in data.RIC.keys():
-    data.exp_month[key] = data.RIC[key][len(data.Ticker[key])]
-    data.year[key] = data.RIC[key][int(len(data.Ticker[key]) + 3) : int(len(data.Ticker[key]) + 5)]
-    data.day[key] = data.RIC[key][int(len(data.Ticker[key])+1) : int(len(data.Ticker[key]) + 3)]
-    data.strike[key] = data.RIC[key][int(len(data.Ticker[key]) + 5) : 
-                                     int(len(data.Ticker[key]) + 8)]
-    data.strike[key] = str(data.strike[key]) + '.' + data.RIC[key][len(data.Ticker[key]) + 8]
-
-	
-#check if option is a call or a put
-calls = ['A','B','C','D','E','F','G','H','I','J','K','L',]
-puts = ['M','N','O','P','Q','R','S','T','U','V','W','X',]
-for key in data.exp_month.keys():
-    if data.exp_month[key] in calls:
-        data.Calls_Puts[key] = 'Call'
-    elif data.exp_month[key] in puts:
-        data.Calls_Puts[key] = 'Put'
-
-#CONVERT EXP_MONTH INTO AN ACTUAL MONTH in exp_month2 column
-for key in data.exp_month.keys():
-    jan = ['A', 'M']
-    feb = ['B', 'N']
-    mar = ['C', 'O']
-    apr = ['D', 'P']
-    may = ['E', 'Q']
-    jun = ['F', 'R']
-    jul = ['G', 'S']
-    aug = ['H', 'T']
-    sep = ['I', 'U']
-    octo = ['J', 'V']
-    nov = ['K', 'W']
-    dec = ['L', 'X']
-    if data.exp_month[key] in jan:
-        data.exp_month2[key] = 'Jan'
-    elif data.exp_month[key] in feb:
-        data.exp_month2[key] = 'Feb'
-    elif data.exp_month[key] in mar:
-        data.exp_month2[key] = 'Mar'
-    elif data.exp_month[key] in apr:
-        data.exp_month2[key] = 'Apr'
-    elif data.exp_month[key] in may:
-        data.exp_month2[key] = 'May'
-    elif data.exp_month[key] in jun:
-        data.exp_month2[key] = 'Jun'
-    elif data.exp_month[key] in jul:
-        data.exp_month2[key] = 'Jul'
-    elif data.exp_month[key] in aug:
-        data.exp_month2[key] = 'Aug'
-    elif data.exp_month[key] in sep:
-        data.exp_month2[key] = 'Sep'
-    elif data.exp_month[key] in octo:
-        data.exp_month2[key] = 'Oct'
-    elif data.exp_month[key] in nov:
-        data.exp_month2[key] = 'Nov'
-    elif data.exp_month[key] in dec:
-        data.exp_month2[key] = 'Dec'
+print 'Done'
